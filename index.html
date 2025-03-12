@@ -50,17 +50,16 @@
 
     <script>
         function calculate() {
-            let expression = document.getElementById("expression").value;
-            // console.log(expression);
+            let expression = document.getElementById("expression").value.replace(/\s+/g, '');
 
-
-            if (!/^[0-9+\-*/().\s]+$/.test(expression)) {
+            if (!/^[0-9+\-*/().]+$/.test(expression)) {
                 alert("โปรดป้อนตัวเลขและเครื่องหมาย + - * / เท่านั้น");
                 return;
             }
 
             try {
-                let result = eval(expression); // คำนวณ
+                let postfix = infixToPostfix(expression); // แปลงลำดับความสำคัญ
+                let result = evaluatePostfix(postfix);   // คำนวณ
                 document.getElementById("result").innerText = result;
             } catch (error) {
                 alert("สมการไม่ถูกต้อง");
@@ -70,6 +69,65 @@
         function clearInput() {
             document.getElementById("expression").value = "";
             document.getElementById("result").innerText = "0";
+        }
+
+        function infixToPostfix(expression) {
+            let precedence = { '+': 1, '-': 1, '*': 2, '/': 2 };  // ลำดับความสำคัญของเครื่องหมาย
+            let output = [];
+            let operators = [];
+
+            for (let i = 0; i < expression.length; i++) {
+                if (!isNaN(expression[i])) {
+                    let num = "";
+                    while (i < expression.length && (!isNaN(expression[i]) || expression[i] === '.')) {
+                        num += expression[i];
+                        i++;
+                    }
+                    i--;
+                    output.push(num);
+                } else if (expression[i] in precedence) {
+                    while (operators.length > 0 && precedence[operators[operators.length - 1]] >= precedence[expression[i]]) {
+                        output.push(operators.pop());
+                    }
+                    operators.push(expression[i]);
+                } else if (expression[i] === '(') {
+                    operators.push(expression[i]);
+                } else if (expression[i] === ')') {
+                    while (operators.length > 0 && operators[operators.length - 1] !== '(') {
+                        output.push(operators.pop());
+                    }
+                    operators.pop();
+                }
+            }
+
+            while (operators.length > 0) {
+                output.push(operators.pop());
+            }
+
+            return output;
+        }
+
+        function evaluatePostfix(postfix) {
+            let stack = [];
+
+            for (let token of postfix) {
+                if (!isNaN(token)) {
+                    stack.push(parseFloat(token));
+                } else {
+                    let b = stack.pop();
+                    let a = stack.pop();
+                    switch (token) {
+                        case '+': stack.push(a + b); break;
+                        case '-': stack.push(a - b); break;
+                        case '*': stack.push(a * b); break;
+                        case '/':
+                            if (b === 0) throw new Error("หารด้วยศูนย์ไม่ได้");
+                            stack.push(a / b);
+                            break;
+                    }
+                }
+            }
+            return stack[0];
         }
     </script>
 
